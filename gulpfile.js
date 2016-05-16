@@ -14,6 +14,8 @@ var babelify = require('babelify'); //  This is our transpiler. It converts ES6 
 var browserify = require('browserify');  // Bundles your javascript files together and let’s you use modules that can be exported and imported in your javascript code.
 var source = require('vinyl-source-stream');  // Plugin used for working with stream outputs. Need this to work with Browserify easily.
 
+var fs = require("graceful-fs");  // A drop-in replacement for fs, making various improvements.
+
 var dest = 'web/';
 
 // External dependencies you do not want to rebundle while developing,
@@ -35,6 +37,25 @@ gulp.task('deploy', function (){
 	bundleApp(true);
 });
 
+// ----------------------------------------------------------------------------
+// Lets bring es6 to es5 with this.
+// Babel - converts ES6 code to ES5 - however it doesn't handle imports.
+// Browserify - crawls your code for dependencies and packages them up 
+// into one file. can have plugins.
+// Babelify - a babel plugin for browserify, to make browserify 
+// handle es6 including imports.
+gulp.task('es6', function() {
+	browserify({ debug: true })
+//		.transform(babelify)
+		.transform(babelify, {presets: ["es2015"]})
+		.require("./app/es6app.js", { entry: true })
+		.bundle()
+		.on('error',gutil.log)
+		.pipe(source('bundle.js'))
+    	.pipe(gulp.dest('./web/js/'));
+});
+// NEW ES6 Task -----------------------------------------------------
+
 gulp.task('watch', function () {
 	gulp.watch(['./app/*.js'], ['scripts']);
 });
@@ -51,7 +72,7 @@ gulp.task('webserver', function() {
 // When running 'gulp' on the terminal this task will fire.
 // It will start watching for changes in every .js file.
 // If there's a change, the task 'scripts' defined above will fire.
-gulp.task('default', ['scripts','watch','webserver']);
+gulp.task('default', ['es6','scripts','watch','webserver']);
 
 // Private Functions
 // ----------------------------------------------------------------------------
